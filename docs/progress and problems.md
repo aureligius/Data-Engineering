@@ -133,7 +133,6 @@ The ratios are less steady than the current index, because in small rural kapane
 12. **The scope is not settled:** the first plan was Sleman only, Josh's README covers all of DIY.
 13. **No reliability labels yet.** Maps and rankings should show how much data stands behind each kapanewon (hourly coverage, number of devices, number of cells). Gunungkidul is the weakest: its median kapanewon has 83.5% of hourly data published and the lowest has 33%.
 14. **The POI download needs internet and takes about 8 minutes.** Its output is not in Git, so everybody has to run it once.
-15. **Nothing from the last merge and the edits above is committed yet.**
 
 ## 7. Decisions we still need
 
