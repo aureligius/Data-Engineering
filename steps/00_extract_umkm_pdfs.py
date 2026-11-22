@@ -1,3 +1,12 @@
+"""00 - (Optional, legacy) Extract tables from the UMKM PDFs into CSV.
+
+Not part of the main flow: the extracted CSVs are already in data/raw/UMKM/ and the
+source PDFs are not in the repo. Needs `pdfplumber` (see requirements.txt).
+
+Input:  data/raw/UMKM/*.pdf
+Output: data/interim/umkm_pdf_extraction/ (not used by later steps)
+Run:    python steps/00_extract_umkm_pdfs.py
+"""
 from pathlib import Path
 import re
 
