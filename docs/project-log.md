@@ -9,6 +9,7 @@ This file records what changed, what was decided, what was tested, and what rema
 - We fixed four problems in the existing SQL (a missed data-quality case, a wrong POI category, the time window, and the crowd-concentration score).
 - The "penetration adjustment" mostly repeats population size, so it remains a sensitivity/context metric. The plain crowd-size index leads the final Sleman score.
 - The second biggest is that Overture POIs are much more complete in the city than in rural areas, so POI counts cannot be compared across places without care.
+- The Sleman ranking was tested with different weights (section 5.4): Pakem, Turi and Prambanan are the stable top three, but the single "candidate" (Pakem) is fragile, so report a watch list.
 - The final Sleman figure script is `src/create_sleman_figures.py`; it has generated the three final Sleman figures and two supporting CSV tables in `outputs/`.
 
 ## 2. What we started from
@@ -118,6 +119,28 @@ The ratios are less steady than the current index, because in small rural kapane
 - Josh's index: Banguntapan, Depok, Sewon, Mlati, Kasihan, Gamping, Ngaglik, Kalasan.
 - Gondomanan scores 0.06 in Josh's index and 1.9 in the plain one.
 
+### 5.4 Sensitivity test of the Sleman score (`steps/04_sensitivity_sleman.py`)
+
+**Why.** The score weights (daytime 40%, day/night 20%, weekend 15%, external inflow 15%, concentration 10%) are our choice. We needed to know how much the answer depends on them.
+
+**How.** The script rebuilds the stage 07 score in Python (it stops if the result differs from the SQL), then changes the recipe: equal weights, dropping one indicator at a time, flipping the direction of concentration, using Josh's adjusted index, and 5,000 random weight sets (seed 0). Results are saved in `audit.sleman_sensitivity_scenarios`, `audit.sleman_sensitivity_random` and `outputs/tables/`.
+
+**Result.**
+
+| | Rank 1 | In top 3 | Is the "candidate" |
+|---|---|---|---|
+| Pakem | 60% | 83% | 52% |
+| Turi | 37% | 87% | 32% |
+| Prambanan | 3% | 90% | 36% |
+| Nobody is a candidate | | | 15% of draws |
+
+- **Pakem, Turi and Prambanan are almost always the top three** (83-90% of random weight sets). That part of the result is solid.
+- **Their order is not solid.** Pakem is first in 60% of draws, Turi in 37%.
+- **The single "candidate" is fragile.** The rule needs the top crowd quartile and the bottom UMKM quartile at the same time, with only 17 kapanewon. Dropping day/night, weekend or concentration leaves no candidate at all.
+- **Two choices change the top three:** flipping the direction of concentration (Turi, Pakem, Cangkringan) and using Josh's adjusted index (Prambanan, Turi, Cangkringan).
+
+**How to report it.** Present Pakem, Turi and Prambanan as a watch list, and say Pakem leads most often but not always. Do not present Pakem as the one proven candidate. The 15% "no candidate" cases should be mentioned as a limit of the quadrant rule.
+
 ## 6. Problems still open
 
 1. **The "penetration adjustment" mostly repeats population size** (details in 5.3). It remains available with a warning flag (15 DIY kapanewon flagged), but `relative_daytime_index` now leads the final Sleman score. The adjusted index is a sensitivity/context metric only.
@@ -139,6 +162,8 @@ The ratios are less steady than the current index, because in small rural kapane
 
 - Whether to apply further POI category cleanup for the optional geographic-context maps (problems 3 and 4).
 - Whether to filter the single-day spike cells (problem 2).
+- Whether the concentration score should add to the opportunity score at all, and in which direction (it changes the top three, section 5.4).
+- Whether to report a watch list of three instead of one candidate (section 5.4).
 - Whether to retire the old DIY-wide figure script and duplicate raw boundary folder after the final Sleman figures are verified.
 
 ## 8. Final scope decision: Sleman

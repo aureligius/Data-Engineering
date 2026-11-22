@@ -23,6 +23,7 @@ This document records what the final Sleman pipeline needs, what can be regenera
 | `data/raw/external/poi/overture_places_diy_2026-11-18.geojson` | Run `python steps/03_run_sql.py 01`; requires internet. |
 | `data/warehouse/jogjapulse.duckdb` | Run `python steps/03_run_sql.py`. |
 | `data/curated/dim_kapanewon.csv` | Run `python steps/02_build_dim_kapanewon.py`. |
+| `audit.sleman_sensitivity_*` (in the warehouse) and `outputs/tables/sleman_sensitivity_*.csv` | Run `python steps/04_sensitivity_sleman.py` after stage 07. |
 | `outputs/figures/sleman_*.png` | Run `python src/create_sleman_figures.py`. |
 | `outputs/tables/sleman_*.csv` | Run `python src/create_sleman_figures.py`. |
 

@@ -83,7 +83,8 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 │   ├── 00_extract_umkm_pdfs.py         optional legacy PDF -> CSV extraction
 │   ├── 01_eda_raw.py                   exploration of all raw data
 │   ├── 02_build_dim_kapanewon.py       kapanewon key table (JogjaPulse <-> UMKM)
-│   └── 03_run_sql.py                   runs the sql/ stages into data/warehouse/jogjapulse.duckdb
+│   ├── 03_run_sql.py                   runs the sql/ stages into data/warehouse/jogjapulse.duckdb
+│   └── 04_sensitivity_sleman.py        sensitivity test of the Sleman opportunity score
 └── src/
     ├── create_sleman_figures.py  final Sleman maps, charts, and tables
     └── helpers/             reusable code only, imported by steps
@@ -120,6 +121,7 @@ Build the data mart (all `sql/` stages, in order, into `data/warehouse/jogjapuls
 python steps/03_run_sql.py          # all stages; stage 01 downloads POIs from S3 (needs internet, about 8 min)
 python steps/03_run_sql.py 02 03    # or only selected stages
 python steps/03_run_sql.py 07       # rebuild the final Sleman opportunity mart after stages 01-06 exist
+python steps/04_sensitivity_sleman.py  # how stable is the Sleman ranking when weights change (needs stage 07)
 python src/create_sleman_figures.py # final Sleman maps, charts, and tables
 ```
 
