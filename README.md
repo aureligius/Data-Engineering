@@ -2,6 +2,8 @@
 
 ## Mapping Mobility-Based Market Opportunity for UMKM in DIY
 
+> **Project log:** every change we made, every decision, every test result and every open problem is explained in [docs/progress and problems.md](docs/progress%20and%20problems.md). Read it before editing the code, and update it when you change something.
+
 ### Project type
 
 This project builds a **DIY Mobility-Commerce Data Mart**: a subject-oriented analytical data store for mapping historical mobility-based market opportunity for UMKM across Daerah Istimewa Yogyakarta (DIY).
@@ -65,7 +67,7 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 ├── README.md                this file
 ├── requirements.txt         Python dependencies
 ├── docs/
-│   └── progress and problems.md    project log: changes to the baseline, decisions, open problems
+│   └── progress and problems.md    project log: what changed, what we decided, what is still open
 ├── data/
 │   ├── raw/                 original data, never edited (see each folder's README)
 │   ├── interim/geo/         boundary GeoJSON used by the SQL stages

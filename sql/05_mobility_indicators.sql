@@ -162,7 +162,20 @@ daily_concentration AS (
         count(*) AS published_cells,
         sum(power(cell_presence, 2))
             / nullif(power(sum(cell_presence), 2), 0)
-            AS cell_presence_hhi
+            AS cell_presence_hhi,
+
+        -- Normalised HHI = (HHI - 1/n) / (1 - 1/n), where n = published cells that day.
+        -- The raw HHI can never go below 1/n, so it rises whenever suppression removes
+        -- cells. Subtracting that floor makes days with different n comparable.
+        -- Days with fewer than 3 published cells are left NULL (too few cells to judge).
+        CASE
+            WHEN count(*) >= 3 THEN
+                (
+                    sum(power(cell_presence, 2))
+                        / nullif(power(sum(cell_presence), 2), 0)
+                    - 1.0 / count(*)
+                ) / (1.0 - 1.0 / count(*))
+        END AS cell_presence_hhi_normalized
     FROM cell_day_weights
     GROUP BY 1, 2, 3, 4
 )
@@ -240,6 +253,13 @@ concentration_summary AS (
         kapanewon_key,
         avg(cell_presence_hhi)
             AS mean_cell_presence_hhi,
+
+        -- Median across days, so a few odd days (for example one-day spikes) do not dominate.
+        median(cell_presence_hhi_normalized)
+            AS median_cell_presence_hhi_normalized,
+        count(cell_presence_hhi_normalized)
+            AS usable_concentration_days,
+
         avg(published_cells)
             AS mean_published_cells_per_day,
         count(*) AS observed_cell_days
@@ -269,6 +289,8 @@ SELECT
     o.valid_od_months,
 
     c.mean_cell_presence_hhi,
+    c.median_cell_presence_hhi_normalized,
+    c.usable_concentration_days,
     c.mean_published_cells_per_day,
     c.observed_cell_days
 FROM staging.dim_kapanewon k
@@ -297,5 +319,8 @@ SELECT
     ) AS kapanewon_with_od_metric,
     count(*) FILTER (
         WHERE mean_cell_presence_hhi IS NOT NULL
-    ) AS kapanewon_with_concentration_metric
+    ) AS kapanewon_with_concentration_metric,
+    count(*) FILTER (
+        WHERE median_cell_presence_hhi_normalized IS NOT NULL
+    ) AS kapanewon_with_normalized_concentration_metric
 FROM mart.mobility_kapanewon;

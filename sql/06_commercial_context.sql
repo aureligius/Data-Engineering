@@ -203,6 +203,8 @@ SELECT
     m.mean_external_origins_observed,
     m.valid_od_months,
     m.mean_cell_presence_hhi,
+    m.median_cell_presence_hhi_normalized,
+    m.usable_concentration_days,
     m.mean_published_cells_per_day,
 
     c.area_sqkm,
