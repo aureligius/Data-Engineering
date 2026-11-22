@@ -3,6 +3,7 @@ pandas>=3.1
 geopandas>=1.2      # also installs shapely
 pyogrio>=0.13       # shapefile reader used by geopandas
 matplotlib>=3.11
+duckdb>=2.0        # SQL data mart (steps/03_run_sql.py)
 
 # Only for steps/00_extract_umkm_pdfs.py (optional)
 # pdfplumber

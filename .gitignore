@@ -7,11 +7,17 @@ __pycache__/
 data/warehouse/
 data/curated/
 data/external/
+
+data/raw/external/boundaries/idn_adm3.geojson
+data/raw/external/poi/overture_places_diy_2026-11-18.geojson
+
 outputs/
 
 Material/
+
 
 *.duckdb
 *.duckdb.wal
 *.duckdb.tmp
 .env
+
