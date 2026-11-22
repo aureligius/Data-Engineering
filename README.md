@@ -64,6 +64,8 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 .
 ├── README.md                this file
 ├── requirements.txt         Python dependencies
+├── docs/
+│   └── progress and problems.md    project log: changes to the baseline, decisions, open problems
 ├── data/
 │   ├── raw/                 original data, never edited (see each folder's README)
 │   ├── interim/geo/         boundary GeoJSON used by the SQL stages
@@ -136,6 +138,7 @@ The DuckDB `spatial` and `httpfs` extensions are installed automatically on firs
 - Use within-day ratios, daily normalized shares, ranks, and appropriately weighted averages.
 - Use `n_pings` only as a device-activity/data-volume measure, not as a people count.
 - Restrict OD metrics to December 2021–February 2022 where `reduced_quality = False`.
+- Restrict the daily presence indicators (including cell concentration) to the same December 2021–February 2022 window (set at the top of `sql/05_mobility_indicators.sql`).
 
 ## UMKM data-quality rules
 

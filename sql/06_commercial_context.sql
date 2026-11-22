@@ -213,7 +213,18 @@ SELECT
     c.market_pois,
     c.tourism_pois,
     c.high_confidence_commercial_pois,
-    c.high_confidence_commercial_pois_per_sqkm
+    c.high_confidence_commercial_pois_per_sqkm,
+
+    -- NULL = nothing missing. A gap means "insufficient data", not "low opportunity".
+    CASE
+        WHEN m.mean_external_origin_normalised_inflow_index IS NULL
+         AND c.high_confidence_commercial_pois = 0
+            THEN 'no published external OD and no high-confidence commercial POI'
+        WHEN m.mean_external_origin_normalised_inflow_index IS NULL
+            THEN 'no published external OD'
+        WHEN c.high_confidence_commercial_pois = 0
+            THEN 'no high-confidence commercial POI'
+    END AS data_gap_note
 FROM mart.mobility_kapanewon m
 JOIN mart.commercial_context_diy c
     USING (adm1_pcode, adm2_pcode, adm3_pcode, kab_kota_key, kapanewon_key);

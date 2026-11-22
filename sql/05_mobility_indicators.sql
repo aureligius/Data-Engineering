@@ -1,6 +1,12 @@
 CREATE SCHEMA IF NOT EXISTS mart;
 CREATE SCHEMA IF NOT EXISTS audit;
 
+-- Analysis window for the daily presence indicators: Dec 2021 - Feb 2022.
+-- Mar-Apr 2022 is excluded: the observed-device sample shrinks and shifts by area there
+-- (rank correlation with Dec-Feb only 0.48), and published cells per day collapse.
+SET VARIABLE analysis_start = DATE '2021-12-01';
+SET VARIABLE analysis_end = DATE '2022-02-28';
+
 -- 1. Daily daytime and night-time presence.
 -- These are means of published hourly observations, never sums of n_maids.
 CREATE OR REPLACE TABLE mart.daily_kapanewon_presence AS
@@ -25,6 +31,8 @@ SELECT
         WHERE hour BETWEEN 0 AND 5
     ) AS nighttime_published_slots
 FROM staging.presence_kapanewon_hourly
+WHERE activity_date BETWEEN getvariable('analysis_start')
+                        AND getvariable('analysis_end')
 GROUP BY 1, 2, 3;
 
 -- 2. Penetration-adjusted daily values.
@@ -142,6 +150,8 @@ WITH cell_day_weights AS (
         activity_date,
         n_maids::DOUBLE AS cell_presence
     FROM mart.presence_cell_daily_assigned
+    WHERE activity_date BETWEEN getvariable('analysis_start')
+                            AND getvariable('analysis_end')
 ),
 daily_concentration AS (
     SELECT
