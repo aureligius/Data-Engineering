@@ -297,6 +297,20 @@ penetration_context AS (
                 THEN 'fewer than 1,000 home devices'
         END AS penetration_adjustment_flag
     FROM staging.home_penetration
+),
+hourly_coverage AS (
+    -- Share of hourly slots published in the window. A missing slot means fewer than
+    -- 5 devices, so low coverage = a thin, less trustworthy signal.
+    SELECT
+        kab_kota_key,
+        kapanewon_key,
+        100.0 * count(*) / (
+            (date_diff('day', getvariable('analysis_start'), getvariable('analysis_end')) + 1) * 24
+        ) AS hourly_slots_published_pct
+    FROM staging.presence_kapanewon_hourly
+    WHERE activity_date BETWEEN getvariable('analysis_start')
+                            AND getvariable('analysis_end')
+    GROUP BY 1, 2
 )
 SELECT
     k.adm1_pcode,
@@ -330,7 +344,9 @@ SELECT
     pc.home_devices,
     pc.population,
     pc.device_population_ratio,
-    pc.penetration_adjustment_flag
+    pc.penetration_adjustment_flag,
+
+    hc.hourly_slots_published_pct
 FROM staging.dim_kapanewon k
 LEFT JOIN presence_summary p
     USING (kab_kota_key, kapanewon_key)
@@ -339,6 +355,8 @@ LEFT JOIN od_summary o
 LEFT JOIN concentration_summary c
     USING (kab_kota_key, kapanewon_key)
 LEFT JOIN penetration_context pc
+    USING (kab_kota_key, kapanewon_key)
+LEFT JOIN hourly_coverage hc
     USING (kab_kota_key, kapanewon_key);
 
 -- 7. Completeness audit.

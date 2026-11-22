@@ -208,6 +208,8 @@ SELECT
     m.median_cell_presence_hhi_normalized,
     m.usable_concentration_days,
     m.mean_published_cells_per_day,
+    m.hourly_slots_published_pct,
+    m.home_devices,
 
     c.area_sqkm,
     c.all_pois,
@@ -228,7 +230,34 @@ SELECT
             THEN 'no published external OD'
         WHEN c.high_confidence_commercial_pois = 0
             THEN 'no high-confidence commercial POI'
-    END AS data_gap_note
+    END AS data_gap_note,
+
+    -- Reliability of the crowd indicators, from two things we can measure:
+    --   1. hourly coverage: share of hourly slots published (missing = fewer than 5 devices)
+    --   2. home devices: size of the device base behind the kapanewon
+    -- Thresholds are our own choice, set near natural breaks in the data.
+    -- The number of visible cells is NOT used here: it depends on the kapanewon's area.
+    CASE
+        WHEN m.hourly_slots_published_pct < 75 OR m.home_devices < 1000 THEN 'low'
+        WHEN m.hourly_slots_published_pct < 90 OR m.home_devices < 3000 THEN 'medium'
+        ELSE 'high'
+    END AS reliability_tier,
+
+    nullif(concat_ws('; ',
+        CASE
+            WHEN m.hourly_slots_published_pct < 75 THEN 'under 75% of hourly data published'
+            WHEN m.hourly_slots_published_pct < 90 THEN 'under 90% of hourly data published'
+        END,
+        CASE
+            WHEN m.home_devices < 1000 THEN 'fewer than 1,000 home devices'
+            WHEN m.home_devices < 3000 THEN 'fewer than 3,000 home devices'
+        END
+    ), '') AS reliability_note,
+
+    -- Only for the concentration (HHI) score: too few visible cells to judge it.
+    CASE
+        WHEN m.mean_published_cells_per_day < 5 THEN 'fewer than 5 visible cells per day'
+    END AS concentration_note
 FROM mart.mobility_kapanewon m
 JOIN mart.commercial_context_diy c
     USING (adm1_pcode, adm2_pcode, adm3_pcode, kab_kota_key, kapanewon_key);
@@ -246,3 +275,12 @@ SELECT
     sum(market_pois) AS diy_market_pois,
     sum(tourism_pois) AS diy_tourism_pois
 FROM mart.diy_mobility_commerce;
+-- 7. How many kapanewon fall in each reliability tier, by regency.
+CREATE OR REPLACE TABLE audit.reliability_tier_summary AS
+SELECT
+    kab_kota,
+    reliability_tier,
+    count(*) AS kapanewon
+FROM mart.diy_mobility_commerce
+GROUP BY 1, 2
+ORDER BY 1, 2;
