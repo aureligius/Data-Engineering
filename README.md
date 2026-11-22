@@ -1,41 +1,39 @@
 # Crowds and Commerce
 
-## Mapping Mobility-Based Market Opportunity for UMKM in DIY
+> **Project log:** decisions, tests, limitations, and open issues are recorded in [docs/project-log.md](docs/project-log.md).
 
-> **Project log:** every change we made, every decision, every test result and every open problem is explained in [docs/progress and problems.md](docs/progress%20and%20problems.md). Read it before editing the code, and update it when you change something.
+## Mapping Historical Mobility-Based Market Opportunity for UMKM in Sleman
 
-### Project type
+This project builds a **Sleman Mobility-Commerce Data Mart**.
 
-This project builds a **DIY Mobility-Commerce Data Mart**: a subject-oriented analytical data store for mapping historical mobility-based market opportunity for UMKM across Daerah Istimewa Yogyakarta (DIY).
+The final analysis covers Sleman's 17 kapanewon. DIY-wide JogjaPulse mobility data remains in the pipeline to calculate regional baselines and measure visitors entering Sleman from other regencies/city areas.
 
-The analysis covers all 78 DIY kapanewon. It uses historical aggregated mobile-device mobility signals and commercial-location context to identify areas with relatively strong crowd-dependent commercial potential.
-
-This is not an enterprise-wide data warehouse. It does not estimate live or future 2026 demand.
+The analysis combines historical mobility indicators with formal registered UMKM counts in F&B/accommodation and retail trade. It identifies areas for field validation; it does not forecast revenue, live demand, or guaranteed business success.
 
 ### Research question
 
-Which DIY kapanewon show historical mobility patterns consistent with relatively stronger market opportunity for crowd-dependent UMKM?
+Which Sleman kapanewon show historical mobility patterns consistent with relatively stronger opportunity for crowd-dependent UMKM, relative to registered F&B/accommodation and retail-trade UMKM supply?
 
 ### Analysis scope
 
-| Dimension | Scope |
-|---|---|
-| Study area | All 78 kapanewon across DIY |
-| Mobility period | 1 December 2021 to 30 April 2022 |
-| Reliable OD period | December 2021 to February 2022 only |
-| Spatial resolution | Kapanewon and published 500m × 500m grid cells |
-| Commercial context | F&B, retail, markets, and tourism POIs |
-| Sleman UMKM role | Supporting sector context and ETL quality-assurance example |
-| Intended use | Historical descriptive opportunity mapping |
+| Dimension                 | Scope                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| Primary study area        | 17 kapanewon in Kabupaten Sleman                                                 |
+| Regional mobility context | All 78 DIY kapanewon                                                             |
+| Mobility analysis period  | 1 December 2021 to 28 February 2022                                              |
+| Spatial resolution        | Kapanewon and published 500m × 500m cells                                        |
+| Formal supply source      | Sleman F&B/accommodation and retail-trade UMKM counts                            |
+| Overture POI role         | Supporting geographic context only; excluded from final supply score             |
+| Intended use              | Historical descriptive opportunity screening and field-validation prioritization |
 
 ### Glossary
 
-| Term | Meaning |
-|---|---|
-| **Kapanewon** | Sub-district (= kecamatan) in DIY. Hierarchy: province > 5 regencies/city > 78 kapanewon > kalurahan |
-| **Kabupaten / Kota** | Regency / city. Sleman Regency contains 17 kapanewon |
-| **UMKM** | Micro, small and medium enterprises |
-| **MAID / `n_maids`** | Distinct mobile devices (not people). Not additive across places or hours |
+| Term                 | Meaning                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Kapanewon**        | Sub-district (= kecamatan) in DIY. Hierarchy: province > 5 regencies/city > 78 kapanewon > kalurahan |
+| **Kabupaten / Kota** | Regency / city. Sleman Regency contains 17 kapanewon                                                 |
+| **UMKM**             | Micro, small and medium enterprises                                                                  |
+| **MAID / `n_maids`** | Distinct mobile devices (not people). Not additive across places or hours                            |
 
 ### Data sources
 
@@ -49,12 +47,12 @@ Which DIY kapanewon show historical mobility patterns consistent with relatively
    - Required to create choropleths.
    - Required to assign 500m grid cells and commercial POIs to kapanewon.
 
-3. **Commercial POIs from OSM or Overture** (downloaded by `sql/01_download_overture_pois.sql` into git-ignored `data/raw/external/`)
+3. **Commercial POIs from Overture** (downloaded by `sql/01_download_overture_pois.sql` into git-ignored `data/raw/external/`)
    - F&B, retail, markets, and tourism locations.
-   - Used as commercial context, not a complete census of businesses.
+   - Used as supporting geographic context, not as a complete census of businesses or the final supply score.
 
 4. **Sleman UMKM data** (`data/raw/UMKM/`, has its own `README.md`)
-   - `rekapumkmsektorusaha.csv` provides local sector context for the 17 Sleman kapanewon.
+   - `rekapumkmsektorusaha.csv` provides the final formal supply measure for the 17 Sleman kapanewon.
    - `rekapdataaset.csv` is used as an ETL quality-assurance example.
    - The Sleman UMKM data is not extrapolated to all DIY.
 
@@ -67,7 +65,8 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 ├── README.md                this file
 ├── requirements.txt         Python dependencies
 ├── docs/
-│   └── progress and problems.md    project log: what changed, what we decided, what is still open
+│   ├── project-log.md              project decisions, tests, limitations, and open issues
+│   └── artifact-lifecycle.md       retained, reproducible, deprecated, and deletion-pending artifacts
 ├── data/
 │   ├── raw/                 original data, never edited (see each folder's README)
 │   ├── interim/geo/         boundary GeoJSON used by the SQL stages
@@ -78,13 +77,15 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 │   ├── 03_umkm_quality_assurance.sql   UMKM QA tables
 │   ├── 04_spatial_assignment.sql       assign cells and POIs to kapanewon
 │   ├── 05_mobility_indicators.sql      mobility indicators per kapanewon
-│   └── 06_commercial_context.sql       POI categories and commercial context
+│   ├── 06_commercial_context.sql       POI categories and commercial context
+│   └── 07_opportunity_screening.sql    final Sleman opportunity mart
 ├── steps/                   numbered Python scripts, run in order
 │   ├── 00_extract_umkm_pdfs.py         optional legacy PDF -> CSV extraction
 │   ├── 01_eda_raw.py                   exploration of all raw data
 │   ├── 02_build_dim_kapanewon.py       kapanewon key table (JogjaPulse <-> UMKM)
 │   └── 03_run_sql.py                   runs the sql/ stages into data/warehouse/jogjapulse.duckdb
 └── src/
+    ├── create_sleman_figures.py  final Sleman maps, charts, and tables
     └── helpers/             reusable code only, imported by steps
         ├── loaders.py              read every raw file with explicit dtypes
         └── profiling.py            profiling tables for EDA
@@ -118,19 +119,22 @@ Build the data mart (all `sql/` stages, in order, into `data/warehouse/jogjapuls
 ```bash
 python steps/03_run_sql.py          # all stages; stage 01 downloads POIs from S3 (needs internet, about 8 min)
 python steps/03_run_sql.py 02 03    # or only selected stages
+python steps/03_run_sql.py 07       # rebuild the final Sleman opportunity mart after stages 01-06 exist
+python src/create_sleman_figures.py # final Sleman maps, charts, and tables
 ```
 
 The DuckDB `spatial` and `httpfs` extensions are installed automatically on first run.
 
 ## Opportunity indicators
 
-- Penetration-adjusted daytime crowd proxy
-- Daytime crowd size without the population adjustment (added next to the adjusted one; see the project log)
+- Daytime crowd-size index without a population adjustment (`relative_daytime_index`)
+- Penetration-adjusted daytime crowd proxy as a sensitivity/context measure
 - Day-to-night crowd ratio
 - Weekend-to-weekday crowd surge
 - External-origin-normalized OD inflow
 - 500m cell-presence concentration
-- Commercial-POI density and composition
+- Registered F&B/accommodation UMKM supply
+- Registered retail-trade UMKM supply
 
 ## Mobility-data rules
 
@@ -142,6 +146,7 @@ The DuckDB `spatial` and `httpfs` extensions are installed automatically on firs
 - Use `n_pings` only as a device-activity/data-volume measure, not as a people count.
 - Restrict OD metrics to December 2021–February 2022 where `reduced_quality = False`.
 - Restrict the daily presence indicators (including cell concentration) to the same December 2021–February 2022 window (set at the top of `sql/05_mobility_indicators.sql`).
+- Use `relative_daytime_index` as the primary crowd-size metric. Keep `relative_adjusted_daytime_index` and `penetration_adjustment_flag` as sensitivity/context fields, not as the primary ranking input.
 
 ## UMKM data-quality rules
 
@@ -171,11 +176,15 @@ This project does not claim to measure:
 
 ## Planned outputs
 
-1. DIY normalized mobility choropleth
-2. DIY commercial-context choropleth
-3. DIY mobility-opportunity ranking and map
+1. Sleman historical mobility and formal-UMKM-supply quadrant map
+2. Sleman mobility-demand versus registered UMKM supply chart
+3. Sleman mobility-opportunity candidate ranking and map
 4. Day-to-night and weekend-surge analysis
 5. External OD inflow analysis
-6. 500m cell-presence concentration analysis
+6. Sleman 500m cell-presence concentration analysis
 7. Sleman UMKM ETL QA report
 8. Reproducible DuckDB, SQL, and Python pipeline
+
+## Artifact lifecycle
+
+The retained source, derived, generated, and deletion-pending artifacts are listed in [docs/artifact-lifecycle.md](docs/artifact-lifecycle.md). Do not delete an artifact until the final Sleman pipeline and figures have been rebuilt successfully from the retained inputs.

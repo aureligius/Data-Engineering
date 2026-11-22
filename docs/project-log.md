@@ -1,20 +1,21 @@
-# Progress and Problems
+# Project Log
 
-This file is the project log. It explains what we changed, what we decided, what we tried, and what is still unsolved. If you only read one thing before touching the code, read this. Last updated 2026-11-22.
+This file records what changed, what was decided, what was tested, and what remains unresolved. Read it before changing the pipeline. Last updated 2026-11-23.
 
 ## 1. The short version
 
-- The data pipeline now runs from start to finish. It builds one table with 78 rows, one per kapanewon (sub-district), in `mart.diy_mobility_commerce`.
+- The upstream pipeline builds one DIY-wide table with 78 rows, one per kapanewon, in `mart.diy_mobility_commerce`.
+- The final opportunity mart, candidate list, maps, and conclusions cover Sleman's 17 kapanewon only.
 - We fixed four problems in the existing SQL (a missed data-quality case, a wrong POI category, the time window, and the crowd-concentration score).
-- The "penetration adjustment" mostly repeats population size, so we kept it and added a plain crowd-size index next to it. Which one leads the maps is still open.
+- The "penetration adjustment" mostly repeats population size, so it remains a sensitivity/context metric. The plain crowd-size index leads the final Sleman score.
 - The second biggest is that Overture POIs are much more complete in the city than in rural areas, so POI counts cannot be compared across places without care.
-- No charts or maps yet.
+- The final Sleman figure script is `src/create_sleman_figures.py`; it has generated the three final Sleman figures and two supporting CSV tables in `outputs/`.
 
 ## 2. What we started from
 
 The project already had a first version from Josh Jovancio (commit `0ac230f`, "feat: build DIY mobility-commerce data mart foundation"). It contained:
 
-- Six SQL steps in `sql/` (download shop and restaurant locations, load all sources, check UMKM data quality, place cells on the map, compute crowd indicators, compute commercial context).
+- Six SQL stages in `sql/` (download shop and restaurant locations, load all sources, check UMKM data quality, place cells on the map, compute crowd indicators, compute commercial context). A seventh stage now builds the final Sleman opportunity mart.
 - Boundary files in `data/interim/geo/`. One of them is the same Geoportal DIY layer as our `data/raw/AdminBoundary/`.
 - A README that covers all 78 kapanewon in DIY, with Sleman UMKM as supporting context.
 
@@ -55,10 +56,10 @@ The project already had a first version from Josh Jovancio (commit `0ac230f`, "f
 
 ## 4. Decisions so far
 
-1. Work on all of DIY, and use Sleman UMKM as the check, because Sleman is the only place where we know how many businesses really exist.
+1. Process all of DIY for regional mobility context, but make Sleman's 17 kapanewon the final opportunity scope because only Sleman has formal sector-level UMKM counts.
 2. Compare kapanewon using Dec-Feb only. March and April are only a sanity check.
 3. Fix the clear mistakes now (Ngemplak, car parks).
-4. Do not replace Josh's "penetration adjustment". Add a plain crowd-size index and warning flags next to it, and decide later which one leads the maps.
+4. Do not remove Josh's "penetration adjustment". Keep it with warning flags as a sensitivity/context metric; use the plain crowd-size index as the final score's primary crowd component.
 5. Show Rongkop as "not enough data", not as a low score.
 6. Josh could not be reached, so none of the edits above were agreed with him. We kept the edits small and listed them all in section 3.1 so he can review them.
 
@@ -119,7 +120,7 @@ The ratios are less steady than the current index, because in small rural kapane
 
 ## 6. Problems still open
 
-1. **The "penetration adjustment" mostly repeats population size** (details in 5.3). We kept it, and added a plain crowd-size index and a warning flag next to it (15 kapanewon flagged). Still open: which index leads the maps and the ranking, and whether the adjusted one is shown as a "sensitivity check" only.
+1. **The "penetration adjustment" mostly repeats population size** (details in 5.3). It remains available with a warning flag (15 DIY kapanewon flagged), but `relative_daytime_index` now leads the final Sleman score. The adjusted index is a sensitivity/context metric only.
 2. **Some cells spike on a single day, and we do not know why.** Three cells peak on the same day (2021-12-11, with 3,000 to 6,500 devices each), one cell in Cangkringan peaks at 7,899 on 2022-02-06, and one cell in Kalasan shows about 958 devices on 5 days only. It could be an event or a data glitch. They are not filtered out yet.
 3. **Overture POIs are much more complete in the city than in the countryside.** Compared with the UMKM food-and-drink counts in Sleman, POIs cover about 48% in Depok (high-confidence only) but only 4 to 5% in Tempel, Seyegan, Moyudan and Minggir. A difference in POI counts therefore says as much about how well a place is mapped as about how many businesses it has. Cleaning cannot fix this. We need to decide how far to trust POI counts.
 4. **POI categories are mixed.** The food-and-drink group includes about 3,800 hotels and lodgings and about 1,200 food shops (such as `grocery_store`, 838). One `park_and_ride` is still counted as tourism. There are 134 duplicates (same name within 50 m, 0.2%). About two thirds of food-and-drink POIs fall under our confidence cut-off of 0.7.
@@ -130,13 +131,32 @@ The ratios are less steady than the current index, because in small rural kapane
 9. **We do not know the year of the UMKM data.**
 10. **Licenses are not checked** for Overture, JogjaPulse (its README still has a placeholder) and Geoportal DIY.
 11. **Duplicated work:** two copies of the boundary (`data/raw/AdminBoundary/` and `data/interim/geo/`), two kapanewon key tables (Python and SQL), and two numbering systems (`steps/` and `sql/`).
-12. **The scope is not settled:** the first plan was Sleman only, Josh's README covers all of DIY.
+12. **Scope resolved:** DIY remains the upstream mobility context, while Sleman is the final opportunity scope. Documentation and final outputs must use this distinction consistently.
 13. **No reliability labels yet.** Maps and rankings should show how much data stands behind each kapanewon (hourly coverage, number of devices, number of cells). Gunungkidul is the weakest: its median kapanewon has 83.5% of hourly data published and the lowest has 33%.
 14. **The POI download needs internet and takes about 8 minutes.** Its output is not in Git, so everybody has to run it once.
 
 ## 7. Decisions we still need
 
-- Which crowd index leads the maps: Josh's adjusted one or the plain one (problem 1).
-- How much to trust POI counts and whether to apply the category cleanup (problems 3 and 4).
+- Whether to apply further POI category cleanup for the optional geographic-context maps (problems 3 and 4).
 - Whether to filter the single-day spike cells (problem 2).
-- The final scope, and who owns the key table and the boundary (problems 11 and 12).
+- Whether to retire the old DIY-wide figure script and duplicate raw boundary folder after the final Sleman figures are verified.
+
+## 8. Final scope decision: Sleman
+
+The final opportunity mart, candidate list, maps, and conclusions cover Sleman's 17 kapanewon.
+
+DIY-wide mobility processing remains necessary because it provides:
+
+- daily regional baselines for mobility normalization;
+- external-origin visitor inflows into Sleman; and
+- broader spatial context for interpreting Sleman activity.
+
+The final supply metric uses registered Sleman F&B/accommodation and retail-trade UMKM counts from `rekapumkmsektorusaha.csv`. Overture POIs remain available as supporting geographic context but are excluded from the final supply-gap score because urban and rural mapping coverage differs substantially.
+
+The primary crowd-size metric is `relative_daytime_index`. The penetration-adjusted `relative_adjusted_daytime_index` remains available with `penetration_adjustment_flag` for sensitivity checks and interpretation, but is not used as the primary final ranking input.
+
+## 9. Cleanup decision
+
+The canonical warehouse is `data/warehouse/jogjapulse.duckdb`; the canonical boundary source is `data/raw/AdminBoundary/`; and the canonical final visualization script is `src/create_sleman_figures.py`.
+
+The old DIY-wide warehouse, figures, tables, and local duplicate boundary folder are pending deletion only after the final Sleman pipeline has been rebuilt and checked. The exact retained, regenerable, historical, and deletion-pending artifacts are listed in `docs/artifact-lifecycle.md`.
