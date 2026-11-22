@@ -125,6 +125,7 @@ The DuckDB `spatial` and `httpfs` extensions are installed automatically on firs
 ## Opportunity indicators
 
 - Penetration-adjusted daytime crowd proxy
+- Daytime crowd size without the population adjustment (added next to the adjusted one; see the project log)
 - Day-to-night crowd ratio
 - Weekend-to-weekday crowd surge
 - External-origin-normalized OD inflow

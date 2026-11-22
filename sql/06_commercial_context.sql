@@ -197,6 +197,8 @@ SELECT
     m.kapanewon_key,
 
     m.relative_adjusted_daytime_index,
+    m.relative_daytime_index,
+    m.penetration_adjustment_flag,
     m.day_night_ratio,
     m.weekend_weekday_surge,
     m.mean_external_origin_normalised_inflow_index,

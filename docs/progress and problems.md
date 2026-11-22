@@ -6,7 +6,7 @@ This file is the project log. It explains what we changed, what we decided, what
 
 - The data pipeline now runs from start to finish. It builds one table with 78 rows, one per kapanewon (sub-district), in `mart.diy_mobility_commerce`.
 - We fixed four problems in the existing SQL (a missed data-quality case, a wrong POI category, the time window, and the crowd-concentration score).
-- The biggest open problem is the "penetration adjustment": it produces odd rankings and still needs a decision.
+- The "penetration adjustment" mostly repeats population size, so we kept it and added a plain crowd-size index next to it. Which one leads the maps is still open.
 - The second biggest is that Overture POIs are much more complete in the city than in rural areas, so POI counts cannot be compared across places without care.
 - No charts or maps yet.
 
@@ -37,7 +37,10 @@ The project already had a first version from Josh Jovancio (commit `0ac230f`, "f
 5. **A fairer crowd-concentration score** (`sql/05_mobility_indicators.sql`, new columns also in `sql/06`).
    See section 5.1. The old score is kept; the new one is added next to it.
 
-6. **README**: merged our version with Josh's, and added a glossary, the folder structure, how to run things, and extra warnings about the data.
+6. **A plain crowd-size index, added next to Josh's** (`sql/05_mobility_indicators.sql`, new columns also in `sql/06`).
+   Josh's index divides the daytime crowd by the share of residents who appear in the data (see 5.3). We left it exactly as it was. Next to it we added `relative_daytime_index`: the same daily comparison with the DIY median, but without that division. We also added `penetration_adjustment_flag`, which marks kapanewon where Josh's adjustment cannot be trusted (more home devices than residents, or fewer than 1,000 home devices). 15 of the 78 are flagged (11 in Gunungkidul, 3 in Yogyakarta City, 1 in Bantul). We checked that no existing column changed value.
+
+7. **README**: merged our version with Josh's, and added a glossary, the folder structure, how to run things, and extra warnings about the data.
 
 ### 3.2 New things we added
 
@@ -55,7 +58,7 @@ The project already had a first version from Josh Jovancio (commit `0ac230f`, "f
 1. Work on all of DIY, and use Sleman UMKM as the check, because Sleman is the only place where we know how many businesses really exist.
 2. Compare kapanewon using Dec-Feb only. March and April are only a sanity check.
 3. Fix the clear mistakes now (Ngemplak, car parks).
-4. Leave the "penetration adjustment" as it is until we decide what to do (section 6, problem 1).
+4. Do not replace Josh's "penetration adjustment". Add a plain crowd-size index and warning flags next to it, and decide later which one leads the maps.
 5. Show Rongkop as "not enough data", not as a low score.
 6. Josh could not be reached, so none of the edits above were agreed with him. We kept the edits small and listed them all in section 3.1 so he can review them.
 
@@ -96,9 +99,27 @@ The ratios are less steady than the current index, because in small rural kapane
 
 *Note: these trial numbers treat the two kapanewon called Jetis (one in Bantul, one in Yogyakarta City) as one, so they are approximate.*
 
+### 5.3 The penetration adjustment: what we found
+
+**How it works.** Josh's index divides the daytime crowd by the share of residents who show up in the data (devices that live in the kapanewon divided by its official population). The idea is to even out places where fewer people use the apps.
+
+**What we found** (December to February):
+
+- **It is almost the same as population size.** The index equals the population times "daytime crowd per home device", and it follows the population ranking closely (0.89, where 1 means identical).
+- **Random noise is not the main problem.** The share of residents is measured from at least 256 devices, so its error is at most about 6%. The real problem is the assumption that people seen in the daytime are as visible as the residents. It fails in Gondomanan, where more devices live than the official population, so the adjustment shrinks its crowd and the busiest visitor area ends up last.
+- **Putting a limit on the adjustment changes almost nothing.** The top 10 stays the same. Dividing by home devices instead of population is unstable from month to month and does not follow business counts.
+- **Without any adjustment the ranking is steadier** from month to month (0.96, 0.96, 0.90, against 0.80, 0.88, 0.56 for the adjusted index). The catch is that it follows where app users live (0.98 with the number of home devices).
+- **In Sleman, population alone follows the number of food-and-drink businesses better (0.86) than any crowd indicator (0.76 to 0.78).** So every crowd indicator partly measures "how big the place is". The useful signal for opportunity is the gap between crowd and businesses, plus the visitor signals Josh already built (visitors from other regencies, day/night, weekend).
+
+**What we did.** We kept Josh's index and added the plain index and the warning flag (section 3.1, item 6). They give different top lists:
+
+- Plain index: Depok, Ngaglik, Banguntapan, Gamping, Kasihan, Mlati, Umbulharjo, Seyegan.
+- Josh's index: Banguntapan, Depok, Sewon, Mlati, Kasihan, Gamping, Ngaglik, Kalasan.
+- Gondomanan scores 0.06 in Josh's index and 1.9 in the plain one.
+
 ## 6. Problems still open
 
-1. **The "penetration adjustment" gives odd rankings.** It divides the daytime crowd by the share of residents who appear in the data (from 0.9% in Tepus to 225% in Gondomanan). In Tepus one device then counts as about 107 people, so 10 devices turn into a big number. In Gondomanan more devices live there than the official population, so one device counts as 0.44 people and the busiest tourist area ends up with the lowest score. The adjusted ranking matches the raw crowd ranking only loosely (0.44). Options: no adjustment, an adjustment with limits, or a mix of both. Not decided.
+1. **The "penetration adjustment" mostly repeats population size** (details in 5.3). We kept it, and added a plain crowd-size index and a warning flag next to it (15 kapanewon flagged). Still open: which index leads the maps and the ranking, and whether the adjusted one is shown as a "sensitivity check" only.
 2. **Some cells spike on a single day, and we do not know why.** Three cells peak on the same day (2021-12-11, with 3,000 to 6,500 devices each), one cell in Cangkringan peaks at 7,899 on 2022-02-06, and one cell in Kalasan shows about 958 devices on 5 days only. It could be an event or a data glitch. They are not filtered out yet.
 3. **Overture POIs are much more complete in the city than in the countryside.** Compared with the UMKM food-and-drink counts in Sleman, POIs cover about 48% in Depok (high-confidence only) but only 4 to 5% in Tempel, Seyegan, Moyudan and Minggir. A difference in POI counts therefore says as much about how well a place is mapped as about how many businesses it has. Cleaning cannot fix this. We need to decide how far to trust POI counts.
 4. **POI categories are mixed.** The food-and-drink group includes about 3,800 hotels and lodgings and about 1,200 food shops (such as `grocery_store`, 838). One `park_and_ride` is still counted as tourism. There are 134 duplicates (same name within 50 m, 0.2%). About two thirds of food-and-drink POIs fall under our confidence cut-off of 0.7.
@@ -116,7 +137,7 @@ The ratios are less steady than the current index, because in small rural kapane
 
 ## 7. Decisions we still need
 
-- What to do with the penetration adjustment (problem 1).
+- Which crowd index leads the maps: Josh's adjusted one or the plain one (problem 1).
 - How much to trust POI counts and whether to apply the category cleanup (problems 3 and 4).
 - Whether to filter the single-day spike cells (problem 2).
 - The final scope, and who owns the key table and the boundary (problems 11 and 12).

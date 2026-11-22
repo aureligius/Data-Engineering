@@ -67,7 +67,11 @@ WITH daily_baseline AS (
     SELECT
         activity_date,
         median(penetration_adjusted_daytime)
-            AS diy_daily_median_adjusted_daytime
+            AS diy_daily_median_adjusted_daytime,
+
+        -- Added: same daily median, but on the raw (unadjusted) daytime presence.
+        median(daytime_presence_mean)
+            AS diy_daily_median_daytime
     FROM mart.daily_kapanewon_adjusted
     WHERE penetration_adjusted_daytime IS NOT NULL
     GROUP BY activity_date
@@ -75,10 +79,17 @@ WITH daily_baseline AS (
 SELECT
     d.*,
     b.diy_daily_median_adjusted_daytime,
+    b.diy_daily_median_daytime,
 
     d.penetration_adjusted_daytime
         / nullif(b.diy_daily_median_adjusted_daytime, 0)
         AS relative_adjusted_daytime_index,
+
+    -- Added next to the adjusted index (which is unchanged): crowd size without the
+    -- population adjustment. 1.0 = the DIY median kapanewon on that day.
+    d.daytime_presence_mean
+        / nullif(b.diy_daily_median_daytime, 0)
+        AS relative_daytime_index,
 
     CASE
         WHEN dayofweek(d.activity_date) IN (0, 6) THEN 'weekend'
@@ -192,6 +203,9 @@ WITH presence_summary AS (
         avg(relative_adjusted_daytime_index)
             AS relative_adjusted_daytime_index,
 
+        avg(relative_daytime_index)
+            AS relative_daytime_index,
+
         sum(daytime_presence_mean * daytime_published_slots)
             / nullif(sum(daytime_published_slots), 0)
             AS raw_daytime_presence_mean,
@@ -265,6 +279,24 @@ concentration_summary AS (
         count(*) AS observed_cell_days
     FROM mart.daily_cell_presence_concentration
     GROUP BY 1, 2
+),
+penetration_context AS (
+    -- Context for the adjusted index. The ratio is home devices / official population.
+    -- The adjustment is unreliable when the ratio is above 1 (more home devices than
+    -- residents, typical of visitor-heavy areas) or when the home base is very small.
+    SELECT
+        kab_kota_key,
+        kapanewon_key,
+        n_users AS home_devices,
+        population,
+        device_population_ratio,
+        CASE
+            WHEN device_population_ratio > 1
+                THEN 'ratio above 1: more home devices than residents'
+            WHEN n_users < 1000
+                THEN 'fewer than 1,000 home devices'
+        END AS penetration_adjustment_flag
+    FROM staging.home_penetration
 )
 SELECT
     k.adm1_pcode,
@@ -276,6 +308,7 @@ SELECT
     k.kapanewon_key,
 
     p.relative_adjusted_daytime_index,
+    p.relative_daytime_index,
     p.day_night_ratio,
     p.weekend_weekday_surge,
     p.raw_daytime_presence_mean,
@@ -292,13 +325,20 @@ SELECT
     c.median_cell_presence_hhi_normalized,
     c.usable_concentration_days,
     c.mean_published_cells_per_day,
-    c.observed_cell_days
+    c.observed_cell_days,
+
+    pc.home_devices,
+    pc.population,
+    pc.device_population_ratio,
+    pc.penetration_adjustment_flag
 FROM staging.dim_kapanewon k
 LEFT JOIN presence_summary p
     USING (kab_kota_key, kapanewon_key)
 LEFT JOIN od_summary o
     USING (kab_kota_key, kapanewon_key)
 LEFT JOIN concentration_summary c
+    USING (kab_kota_key, kapanewon_key)
+LEFT JOIN penetration_context pc
     USING (kab_kota_key, kapanewon_key);
 
 -- 7. Completeness audit.
@@ -308,6 +348,9 @@ SELECT
     count(*) FILTER (
         WHERE relative_adjusted_daytime_index IS NOT NULL
     ) AS kapanewon_with_presence_metric,
+    count(*) FILTER (
+        WHERE relative_daytime_index IS NOT NULL
+    ) AS kapanewon_with_raw_presence_metric,
     count(*) FILTER (
         WHERE day_night_ratio IS NOT NULL
     ) AS kapanewon_with_day_night_metric,
