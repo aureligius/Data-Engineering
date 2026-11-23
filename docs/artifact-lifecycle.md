@@ -29,7 +29,7 @@ This document records what the final Sleman pipeline needs, what can be regenera
 | `outputs/tables/sleman_*.csv` | Run `python src/create_sleman_figures.py`. |
 | `outputs/figures/sleman_500m_mobility_hotspots.png`, `outputs/figures/sleman_hotspot_*.png`, `outputs/tables/sleman_cell_hotspots.csv`, `outputs/tables/sleman_watchlist_cell_hotspots.csv` | Run `python src/create_sleman_hotspot_maps.py` after stage 08. |
 
-These artifacts are git-ignored because they are reproducible local outputs or large external downloads.
+The warehouse, POI download and `data/curated/` are git-ignored (reproducible or large). `outputs/` (figures and tables, about 2 MB) is **not** git-ignored, so the team can look at the results on GitHub; regenerate and commit them again whenever the pipeline changes.
 
 ## Pending deletion after final verification
 

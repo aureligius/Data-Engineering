@@ -9,6 +9,7 @@ This file records what changed, what was decided, what was tested, and what rema
 - We fixed four problems in the existing SQL (a missed data-quality case, a wrong POI category, the time window, and the crowd-concentration score).
 - The "penetration adjustment" mostly repeats population size, so it remains a sensitivity/context metric. The plain crowd-size index leads the final Sleman score.
 - The second biggest is that Overture POIs are much more complete in the city than in rural areas, so POI counts cannot be compared across places without care.
+- Every kapanewon now has a reliability tier (42 high, 22 medium, 14 low; section 5.5). Gunungkidul is the weakest; Sleman is almost all high.
 - The Sleman ranking was tested with different weights (section 5.4): Pakem, Turi and Prambanan are the stable top three, but the single "candidate" (Pakem) is fragile, so report a watch list.
 - The final Sleman figure script is `src/create_sleman_figures.py`; it has generated the three final Sleman figures and two supporting CSV tables in `outputs/`.
 
@@ -42,7 +43,10 @@ The project already had a first version from Josh Jovancio (commit `0ac230f`, "f
 6. **A plain crowd-size index, added next to Josh's** (`sql/05_mobility_indicators.sql`, new columns also in `sql/06`).
    Josh's index divides the daytime crowd by the share of residents who appear in the data (see 5.3). We left it exactly as it was. Next to it we added `relative_daytime_index`: the same daily comparison with the DIY median, but without that division. We also added `penetration_adjustment_flag`, which marks kapanewon where Josh's adjustment cannot be trusted (more home devices than residents, or fewer than 1,000 home devices). 15 of the 78 are flagged (11 in Gunungkidul, 3 in Yogyakarta City, 1 in Bantul). We checked that no existing column changed value.
 
-7. **README**: merged our version with Josh's, and added a glossary, the folder structure, how to run things, and extra warnings about the data.
+7. **Reliability labels** (`sql/05`, `sql/06`; test in section 5.5).
+   Each kapanewon now has `reliability_tier` (`high`, `medium`, `low`) and `reliability_note` saying why, plus `hourly_slots_published_pct`, `home_devices` and `concentration_note`. The tier is `low` if under 75% of hourly data is published or fewer than 1,000 devices live there, `medium` if under 90% or under 3,000, otherwise `high`. The thresholds are our choice, set near natural breaks. The number of visible cells is not used for the tier because it depends on area (Gondomanan and Ngampilan are tiny); it only gives `concentration_note` for the concentration score. Result: 42 high, 22 medium, 14 low. Counts of existing columns and of the Sleman score did not change.
+
+8. **README**: merged our version with Josh's, and added a glossary, the folder structure, how to run things, and extra warnings about the data.
 
 ### 3.2 New things we added
 
@@ -142,6 +146,20 @@ The ratios are less steady than the current index, because in small rural kapane
 
 **How to report it.** Present Pakem, Turi and Prambanan as a watch list, and say Pakem leads most often but not always. Do not present Pakem as the one proven candidate. The 15% "no candidate" cases should be mentioned as a limit of the quadrant rule.
 
+### 5.5 Do the reliability tiers mean anything? (a check)
+
+**Question.** Does a lower tier really go with a shakier crowd signal? We compared the tiers with the day-to-day wobble of `relative_daytime_index` and with how much it swings between December, January and February.
+
+| Tier | Kapanewon | Day-to-day wobble (median) | Swing between months (median) |
+|---|---|---|---|
+| high | 42 | 0.25 | 0.26 |
+| medium | 22 | 0.30 | 0.34 |
+| low | 14 | 0.37 | 0.36 |
+
+**Reading.** The wobble grows steadily from high to low, so the tiers capture real noise. The link with the monthly swing is weaker (rank correlation with hourly coverage only -0.26), so the tier is a rough warning, not a measurement. A rank-based swing did not follow the tiers (low tier 0.04) because low-tier places sit consistently at the bottom, so that measure says little here.
+
+**Where it matters.** Gunungkidul has 11 low and 5 medium of its 18. In Sleman, 16 of 17 are high and only Moyudan is medium, so the tiers do not change the Sleman conclusions (Pakem, Turi and Prambanan are all high). They matter for DIY-wide maps.
+
 ## 6. Problems still open
 
 1. **The "penetration adjustment" mostly repeats population size** (details in 5.3). It remains available with a warning flag (15 DIY kapanewon flagged), but `relative_daytime_index` now leads the final Sleman score. The adjusted index is a sensitivity/context metric only.
@@ -156,7 +174,7 @@ The ratios are less steady than the current index, because in small rural kapane
 10. **Licenses are not checked** for Overture, JogjaPulse (its README still has a placeholder) and Geoportal DIY.
 11. **Duplicated work:** two copies of the boundary (`data/raw/AdminBoundary/` and `data/interim/geo/`), two kapanewon key tables (Python and SQL), and two numbering systems (`steps/` and `sql/`).
 12. **Scope resolved:** DIY remains the upstream mobility context, while Sleman is the final opportunity scope. Documentation and final outputs must use this distinction consistently.
-13. **No reliability labels yet.** Maps and rankings should show how much data stands behind each kapanewon (hourly coverage, number of devices, number of cells). Gunungkidul is the weakest: its median kapanewon has 83.5% of hourly data published and the lowest has 33%.
+13. **Reliability labels exist, but nothing uses them yet.** `reliability_tier` is in `mart.diy_mobility_commerce` (section 3.1, item 7), but the Sleman stage and the figures do not show it. Maps and rankings should display it. The tier says how much data stands behind a kapanewon, not whether an index is right (Gondomanan is `high` but its adjusted index is still flagged).
 14. **The POI download needs internet and takes about 8 minutes.** Its output is not in Git, so everybody has to run it once.
 
 ## 7. Decisions we still need
