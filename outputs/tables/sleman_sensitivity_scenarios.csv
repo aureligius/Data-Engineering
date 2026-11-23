@@ -1,7 +1,7 @@
 scenario,top_1,top_2,top_3,candidates
 baseline (40/20/15/15/10),PAKEM,TURI,PRAMBANAN,PAKEM
 equal weights,PAKEM,TURI,PRAMBANAN,PAKEM
-drop daytime,TURI,PRAMBANAN,PAKEM,"PRAMBANAN, TURI"
+drop daytime,TURI,PRAMBANAN,PAKEM,"TURI, PRAMBANAN"
 drop day_night,PAKEM,TURI,NGEMPLAK,none
 drop weekend,PAKEM,PRAMBANAN,TURI,none
 drop external,TURI,PAKEM,PRAMBANAN,PAKEM
