@@ -89,18 +89,51 @@ SELECT
 FROM with_geometry g
 CROSS JOIN threshold t;
 
-CREATE OR REPLACE TABLE mart.sleman_candidate_cell_hotspots AS
+-- Watch list: the top kapanewon by opportunity_screening_score (stage 07).
+-- Hotspots are mapped for the whole watch list, not only the single quadrant
+-- "candidate", because the candidate rule is fragile with 17 kapanewon
+-- (see docs/project-log.md, section 5.4). is_quadrant_candidate keeps that
+-- rule visible.
+SET VARIABLE watchlist_size = 3;
+
+CREATE OR REPLACE TABLE mart.sleman_opportunity_watchlist AS
 SELECT
+    row_number() OVER (
+        ORDER BY opportunity_screening_score DESC,
+                 mobility_demand_score DESC
+    ) AS watchlist_rank,
+    adm3_pcode,
+    kab_kota_key,
+    kapanewon_key,
+    kapanewon,
+    mobility_demand_score,
+    relative_umkm_supply_gap_score,
+    opportunity_screening_score,
+    opportunity_quadrant,
+    opportunity_quadrant = 'HIGH_MOBILITY_LOW_UMKM_SUPPLY'
+        AS is_quadrant_candidate
+FROM mart.sleman_opportunity_scored
+QUALIFY watchlist_rank <= getvariable('watchlist_size')
+ORDER BY watchlist_rank;
+
+-- Replaced by mart.sleman_watchlist_cell_hotspots.
+DROP TABLE IF EXISTS mart.sleman_candidate_cell_hotspots;
+
+CREATE OR REPLACE TABLE mart.sleman_watchlist_cell_hotspots AS
+SELECT
+    w.watchlist_rank,
+    w.kapanewon,
     h.*,
-    c.mobility_demand_score,
-    c.opportunity_screening_score,
-    c.opportunity_quadrant
+    w.mobility_demand_score,
+    w.opportunity_screening_score,
+    w.opportunity_quadrant,
+    w.is_quadrant_candidate
 FROM mart.sleman_cell_hotspots h
-JOIN mart.sleman_opportunity_candidates c
+JOIN mart.sleman_opportunity_watchlist w
     USING (adm3_pcode, kab_kota_key, kapanewon_key)
 WHERE h.hotspot_class = 'HIGH_ACTIVITY_HOTSPOT'
 ORDER BY
-    c.opportunity_screening_score DESC,
+    w.watchlist_rank,
     h.median_relative_cell_activity_index DESC;
 
 CREATE OR REPLACE TABLE audit.sleman_cell_hotspot_summary AS

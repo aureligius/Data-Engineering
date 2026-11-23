@@ -49,6 +49,7 @@ The project already had a first version from Josh Jovancio (commit `0ac230f`, "f
 - `steps/`: numbered scripts. `00` extracts UMKM tables from PDFs (old, optional), `01` explores the raw data, `02` builds a kapanewon key table, `03` runs all the SQL steps in order.
 - `src/helpers/`: shared code (`loaders.py` reads every raw file correctly, `profiling.py` summarises tables).
 - `requirements.txt`, a README for `data/raw/UMKM/`, a README for `data/raw/AdminBoundary/`, and this file.
+- **Watch list in `sql/08_cell_hotspots.sql`** (following section 5.4). New table `mart.sleman_opportunity_watchlist` holds the top 3 kapanewon by `opportunity_screening_score` (size set by `watchlist_size` at the top of the stage); with the current data that is Pakem, Turi and Prambanan. `is_quadrant_candidate` still marks the quadrant-rule candidate (Pakem). `mart.sleman_candidate_cell_hotspots` (Pakem only) is replaced by `mart.sleman_watchlist_cell_hotspots`, and `src/create_sleman_hotspot_maps.py` now draws one map per watch-list kapanewon (`outputs/figures/sleman_hotspot_{pakem,turi,prambanan}.png`) and labels them on the overview map. All three have cells in the Sleman-wide top 10% (Pakem 3, Turi 5, Prambanan 2), so the hotspot threshold is unchanged.
 
 ### 3.3 Renamed or moved
 
@@ -163,7 +164,7 @@ The ratios are less steady than the current index, because in small rural kapane
 - Whether to apply further POI category cleanup for the optional geographic-context maps (problems 3 and 4).
 - Whether to filter the single-day spike cells (problem 2).
 - Whether the concentration score should add to the opportunity score at all, and in which direction (it changes the top three, section 5.4).
-- Whether to report a watch list of three instead of one candidate (section 5.4).
+- Whether to report a watch list of three instead of one candidate (section 5.4). Implemented in `sql/08` and the hotspot maps (section 3.2); the quadrant map in `src/create_sleman_figures.py` still shows the single candidate only.
 - Whether to retire the old DIY-wide figure script and duplicate raw boundary folder after the final Sleman figures are verified.
 
 ## 8. Final scope decision: Sleman

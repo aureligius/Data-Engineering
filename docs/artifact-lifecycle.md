@@ -10,10 +10,11 @@ This document records what the final Sleman pipeline needs, what can be regenera
 | `data/raw/UMKM/` | Immutable Sleman formal-UMKM source and ETL-QA source. |
 | `data/raw/AdminBoundary/` | Canonical official DIY Geoportal shapefile source. |
 | `data/interim/geo/diy_kapanewon_geoportal.geojson` | WGS84 derived boundary consumed by DuckDB spatial SQL. |
-| `sql/01_download_overture_pois.sql` through `sql/07_opportunity_screening.sql` | Reproducible SQL pipeline. Stage 07 is the final Sleman opportunity mart. |
+| `sql/01_download_overture_pois.sql` through `sql/08_cell_hotspots.sql` | Reproducible SQL pipeline. Stage 07 is the final Sleman opportunity mart; stage 08 adds 500m hotspots and the watch list. |
 | `steps/01_eda_raw.py` through `steps/03_run_sql.py` | Reproducible EDA, key-check, and pipeline-run workflow. |
 | `src/helpers/` | Shared read-only loading and profiling helpers. |
 | `src/create_sleman_figures.py` | Canonical final-figure generator. |
+| `src/create_sleman_hotspot_maps.py` | 500m hotspot maps for the watch list (needs stage 08). |
 | `README.md`, `docs/project-log.md`, and this file | Current project documentation. |
 
 ## Regenerate; do not commit
@@ -26,6 +27,7 @@ This document records what the final Sleman pipeline needs, what can be regenera
 | `audit.sleman_sensitivity_*` (in the warehouse) and `outputs/tables/sleman_sensitivity_*.csv` | Run `python steps/04_sensitivity_sleman.py` after stage 07. |
 | `outputs/figures/sleman_*.png` | Run `python src/create_sleman_figures.py`. |
 | `outputs/tables/sleman_*.csv` | Run `python src/create_sleman_figures.py`. |
+| `outputs/figures/sleman_500m_mobility_hotspots.png`, `outputs/figures/sleman_hotspot_*.png`, `outputs/tables/sleman_cell_hotspots.csv`, `outputs/tables/sleman_watchlist_cell_hotspots.csv` | Run `python src/create_sleman_hotspot_maps.py` after stage 08. |
 
 These artifacts are git-ignored because they are reproducible local outputs or large external downloads.
 

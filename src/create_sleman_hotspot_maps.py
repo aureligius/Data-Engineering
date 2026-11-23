@@ -42,17 +42,19 @@ def load_data():
             FROM mart.sleman_cell_hotspots
         """).fetchdf()
 
-        candidates = con.execute("""
+        watchlist = con.execute("""
             SELECT
+                watchlist_rank,
                 adm3_pcode,
                 kapanewon,
                 mobility_demand_score,
-                opportunity_screening_score
-            FROM mart.sleman_opportunity_candidates
-            ORDER BY opportunity_screening_score DESC
+                opportunity_screening_score,
+                opportunity_quadrant
+            FROM mart.sleman_opportunity_watchlist
+            ORDER BY watchlist_rank
         """).fetchdf()
 
-    return cells, candidates
+    return cells, watchlist
 
 
 def load_boundaries():
@@ -98,7 +100,7 @@ def safe_filename(value):
     ).strip("_")
 
 
-def save_all_sleman_hotspots(boundaries, grid, candidates):
+def save_all_sleman_hotspots(boundaries, grid, watchlist):
     figure, axis = plt.subplots(figsize=(10, 10))
 
     boundaries.plot(
@@ -139,18 +141,29 @@ def save_all_sleman_hotspots(boundaries, grid, candidates):
         label="Top 10% eligible activity cells",
     )
 
-    candidate_boundaries = boundaries.merge(
-        candidates[["adm3_pcode"]],
+    watchlist_boundaries = boundaries.merge(
+        watchlist[["adm3_pcode", "watchlist_rank", "kapanewon"]],
         on="adm3_pcode",
         how="inner",
     )
 
-    candidate_boundaries.boundary.plot(
+    watchlist_boundaries.boundary.plot(
         ax=axis,
         color="#2166ac",
         linewidth=1.5,
-        label="Final Sleman screening candidate",
+        label="Watch list (top 3 screening score)",
     )
+
+    for row in watchlist_boundaries.itertuples():
+        point = row.geometry.representative_point()
+        axis.annotate(
+            f"{row.watchlist_rank}. {row.kapanewon.title()}",
+            (point.x, point.y),
+            ha="center",
+            fontsize=9,
+            fontweight="bold",
+            color="#08306b",
+        )
 
     axis.set_title(
         "Sleman historical 500m mobility hotspots",
@@ -163,7 +176,7 @@ def save_all_sleman_hotspots(boundaries, grid, candidates):
         -0.04,
         (
             "Cells represent median normalized historical "
-            "device presence, Dec 2021-Feb 2022. "
+            "device presence, Dec 2021-Feb 2022.\n"
             "They are field-validation hotspots, not business recommendations."
         ),
         transform=axis.transAxes,
@@ -186,8 +199,8 @@ def save_all_sleman_hotspots(boundaries, grid, candidates):
     plt.close(figure)
 
 
-def save_candidate_maps(boundaries, grid, candidates):
-    for candidate in candidates.itertuples():
+def save_watchlist_maps(boundaries, grid, watchlist):
+    for candidate in watchlist.itertuples():
         boundary = boundaries[
             boundaries["adm3_pcode"] == candidate.adm3_pcode
         ]
@@ -242,6 +255,7 @@ def save_candidate_maps(boundaries, grid, candidates):
 
         axis.set_title(
             (
+                f"Watch list #{candidate.watchlist_rank} - "
                 f"{candidate.kapanewon.title()}: "
                 "historical 500m mobility hotspots"
             ),
@@ -256,7 +270,9 @@ def save_candidate_maps(boundaries, grid, candidates):
                 f"Mobility-demand score: "
                 f"{candidate.mobility_demand_score:.2f}; "
                 f"opportunity-screening score: "
-                f"{candidate.opportunity_screening_score:.2f}"
+                f"{candidate.opportunity_screening_score:.2f}; "
+                f"quadrant: "
+                f"{candidate.opportunity_quadrant.replace('_', ' ').lower()}"
             ),
             transform=axis.transAxes,
             ha="center",
@@ -285,7 +301,7 @@ def save_candidate_maps(boundaries, grid, candidates):
 
 
 def main():
-    cells, candidates = load_data()
+    cells, watchlist = load_data()
     boundaries = load_boundaries()
     grid = make_cell_geodataframe(cells, boundaries.crs)
 
@@ -294,27 +310,27 @@ def main():
         index=False,
     )
 
-    candidate_cells = cells.merge(
-        candidates[["adm3_pcode", "kapanewon"]],
+    watchlist_cells = cells.merge(
+        watchlist[["adm3_pcode", "watchlist_rank", "kapanewon"]],
         on="adm3_pcode",
         how="inner",
     )
 
-    candidate_cells.to_csv(
-        TABLES / "sleman_candidate_cell_hotspots.csv",
+    watchlist_cells.to_csv(
+        TABLES / "sleman_watchlist_cell_hotspots.csv",
         index=False,
     )
 
     save_all_sleman_hotspots(
         boundaries,
         grid,
-        candidates,
+        watchlist,
     )
 
-    save_candidate_maps(
+    save_watchlist_maps(
         boundaries,
         grid,
-        candidates,
+        watchlist,
     )
 
     print("Created Sleman 500m hotspot maps and tables.")

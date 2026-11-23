@@ -78,7 +78,8 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 │   ├── 04_spatial_assignment.sql       assign cells and POIs to kapanewon
 │   ├── 05_mobility_indicators.sql      mobility indicators per kapanewon
 │   ├── 06_commercial_context.sql       POI categories and commercial context
-│   └── 07_opportunity_screening.sql    final Sleman opportunity mart
+│   ├── 07_opportunity_screening.sql    final Sleman opportunity mart
+│   └── 08_cell_hotspots.sql            500m hotspots and the Sleman watch list (top 3)
 ├── steps/                   numbered Python scripts, run in order
 │   ├── 00_extract_umkm_pdfs.py         optional legacy PDF -> CSV extraction
 │   ├── 01_eda_raw.py                   exploration of all raw data
@@ -86,7 +87,8 @@ All sources join on the **kapanewon code** (e.g. `34.04.12` = Ngaglik). UMKM onl
 │   ├── 03_run_sql.py                   runs the sql/ stages into data/warehouse/jogjapulse.duckdb
 │   └── 04_sensitivity_sleman.py        sensitivity test of the Sleman opportunity score
 └── src/
-    ├── create_sleman_figures.py  final Sleman maps, charts, and tables
+    ├── create_sleman_figures.py       final Sleman maps, charts, and tables
+    ├── create_sleman_hotspot_maps.py  500m hotspot maps for the watch list
     └── helpers/             reusable code only, imported by steps
         ├── loaders.py              read every raw file with explicit dtypes
         └── profiling.py            profiling tables for EDA
@@ -123,6 +125,7 @@ python steps/03_run_sql.py 02 03    # or only selected stages
 python steps/03_run_sql.py 07       # rebuild the final Sleman opportunity mart after stages 01-06 exist
 python steps/04_sensitivity_sleman.py  # how stable is the Sleman ranking when weights change (needs stage 07)
 python src/create_sleman_figures.py # final Sleman maps, charts, and tables
+python src/create_sleman_hotspot_maps.py  # 500m hotspot maps for the watch list (needs stage 08)
 ```
 
 The DuckDB `spatial` and `httpfs` extensions are installed automatically on first run.
